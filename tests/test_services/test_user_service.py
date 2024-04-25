@@ -5,6 +5,7 @@ from app.dependencies import get_settings
 from app.models.user_model import User, UserRole
 from app.services.user_service import UserService
 from app.utils.nickname_gen import generate_nickname
+from app.utils.security import generate_verification_token
 
 pytestmark = pytest.mark.asyncio
 
@@ -182,3 +183,70 @@ async def test_verify_that_an_email_is_sent_after_creating_a_user(db_session, em
     assert user is not None
     assert user.email == user_data["email"]
     assert email_sent is True
+
+# Test generating a verification token after creating a user
+async def test_generate_verification_token_after_creating_a_user(db_session, email_service):
+    user_data = {
+        "nickname": generate_nickname(),
+        "email": "new_user@example.com",
+        "password": "NewPassword123!",
+        "role": UserRole.ADMIN
+    }
+    user = await UserService.create(db_session, user_data, email_service)
+    user.verification_token = generate_verification_token()
+
+    assert user is not None
+    assert user.email == user_data["email"]
+    assert user.verification_token is not None
+
+# Test verifying an email with a token and retain the ADMIN user role as ADMIN
+async def test_verify_email_with_token_and_retain_admin_user_role_as_admin(db_session, email_service):
+    admin_user_data = {
+        "nickname": generate_nickname(),
+        "email": "new_admin_user@example.com",
+        "password": "NewAadminPassword123!",
+        "role": UserRole.ADMIN
+    }
+    admin_user = await UserService.create(db_session, admin_user_data, email_service)
+
+    token = "valid_token_example"  # This should be set in your user setup if it depends on a real token
+    admin_user.verification_token = token  # Simulating setting the token in the database
+    await db_session.commit()
+
+    result = await UserService.verify_email_with_token(db_session, admin_user.id, token)
+    assert result is True
+    assert admin_user is not None
+    assert admin_user.email == admin_user_data["email"]
+    assert admin_user.role == admin_user_data["role"]
+
+# Test verifying an email with a token and change the ANONYMOUS user role to AUTHENTICATED
+async def test_verify_email_with_token_and_change_anonymous_user_role_to_authenticated(db_session, email_service):
+    admin_user_data = {
+        "nickname": generate_nickname(),
+        "email": "new_admin_user@example.com",
+        "password": "NewAadminPassword123!",
+        "role": UserRole.ADMIN
+    }
+    admin_user = await UserService.create(db_session, admin_user_data, email_service)
+
+    assert admin_user is not None
+    assert admin_user.email == admin_user_data["email"]
+    assert admin_user.role == admin_user_data["role"]
+
+    anonymous_user_data = {
+        "nickname": generate_nickname(),
+        "email": "new_anonymous_user@example.com",
+        "password": "NewAnonymousPassword123!",
+        "role": UserRole.ANONYMOUS
+    }
+    anonymous_user = await UserService.create(db_session, anonymous_user_data, email_service)
+
+    token = "valid_token_example"  # This should be set in your user setup if it depends on a real token
+    anonymous_user.verification_token = token  # Simulating setting the token in the database
+    await db_session.commit()
+
+    result = await UserService.verify_email_with_token(db_session, anonymous_user.id, token)
+    assert result is True
+    assert anonymous_user is not None
+    assert anonymous_user.email == anonymous_user_data["email"]
+    assert anonymous_user.role == UserRole.AUTHENTICATED
