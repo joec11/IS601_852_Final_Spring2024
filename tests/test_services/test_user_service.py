@@ -250,3 +250,17 @@ async def test_verify_email_with_token_and_change_anonymous_user_role_to_authent
     assert anonymous_user is not None
     assert anonymous_user.email == anonymous_user_data["email"]
     assert anonymous_user.role == UserRole.AUTHENTICATED
+
+# Test converting a user email to lowercase after the user is created
+async def test_convert_user_email_to_lowercase_after_user_is_created(db_session, email_service):
+    user_data = {
+        "nickname": generate_nickname(),
+        "email": "NEW_USER@EXAMPLE.COM",
+        "password": "NewPassword123!",
+        "role": UserRole.ADMIN
+    }
+    user = await UserService.create(db_session, user_data, email_service)
+
+    assert user is not None
+    assert user.email == str(user_data["email"]).lower()
+    assert user.role == user_data["role"]
