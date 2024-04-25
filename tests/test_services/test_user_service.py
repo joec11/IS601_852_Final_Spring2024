@@ -161,3 +161,24 @@ async def test_unlock_user_account(db_session, locked_user):
     assert unlocked, "The account should be unlocked"
     refreshed_user = await UserService.get_by_id(db_session, locked_user.id)
     assert not refreshed_user.is_locked, "The user should no longer be locked"
+
+# Test registering a user and verify that an email is sent after creating the user
+async def test_verify_that_an_email_is_sent_after_creating_a_user(db_session, email_service):
+    user_data = {
+        "nickname": generate_nickname(),
+        "email": "register_anonymous_user@example.com",
+        "password": "RegisterAnonymous123!",
+        "role": UserRole.ANONYMOUS # Instead of ANONYMOUS, the user role can also be set to ADMIN
+    }
+
+    email_sent = False
+    async def test_sending_the_verification_email(user):
+        nonlocal email_sent
+        email_sent = True
+    
+    email_service.send_verification_email = test_sending_the_verification_email
+    user = await UserService.register_user(db_session, user_data, email_service)
+
+    assert user is not None
+    assert user.email == user_data["email"]
+    assert email_sent is True
