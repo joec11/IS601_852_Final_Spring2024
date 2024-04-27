@@ -210,7 +210,7 @@ async def test_listing_users_as_admin_or_manager_after_inputing_invalid_skip_int
     response = await async_client.get(url=url, params=parameters, headers=headers)
 
     assert response.status_code == 500
-    assert response.json()["detail"] == f"The Skip Integer value {str(parameters["skip"])} cannot be less than 0"
+    assert response.json()["detail"] == "The Skip Integer value -1 cannot be less than 0"
 
 # Test listing users as an ADMIN or a MANAGER after inputing an invalid Limit Integer value
 @pytest.mark.asyncio
@@ -222,4 +222,4 @@ async def test_listing_users_as_admin_or_manager_after_inputing_invalid_limit_in
     response = await async_client.get(url=url, params=parameters, headers=headers)
 
     assert response.status_code == 500
-    assert response.json()["detail"] == f"The Limit Integer value {str(parameters["limit"])} cannot be less than 1"
+    assert response.json()["detail"] == "The Limit Integer value 0 cannot be less than 1"
