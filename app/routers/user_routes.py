@@ -176,6 +176,13 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
+    
+    if skip < 0:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"The Skip Integer value {skip} cannot be less than 0")
+    
+    if limit < 1:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"The Limit Integer value {limit} cannot be less than 1")
+
     total_users = await UserService.count(db)
     users = await UserService.list_users(db, skip, limit)
 
