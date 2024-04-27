@@ -199,3 +199,27 @@ async def test_authorize_user_admin_login(async_client, admin_token):
     # Login and get the access token
     token_response = await async_client.post("/login", headers=headers)
     assert token_response.status_code == 307
+
+# Test listing users as an ADMIN or a MANAGER after inputing an invalid Skip Integer value
+@pytest.mark.asyncio
+async def test_listing_users_as_admin_or_manager_after_inputing_invalid_skip_integer_value(async_client, admin_token):
+    url = "/users/"
+    parameters = {"skip": -1}
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    response = await async_client.get(url=url, params=parameters, headers=headers)
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == f"The Skip Integer value {parameters["skip"]} cannot be less than 0"
+
+# Test listing users as an ADMIN or a MANAGER after inputing an invalid Limit Integer value
+@pytest.mark.asyncio
+async def test_listing_users_as_admin_or_manager_after_inputing_invalid_limit_integer_value(async_client, admin_token):
+    url = "/users/"
+    parameters = {"limit": 0}
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    response = await async_client.get(url=url, params=parameters, headers=headers)
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == f"The Limit Integer value {parameters["limit"]} cannot be less than 1"
