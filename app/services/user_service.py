@@ -119,6 +119,28 @@ class UserService:
         return result.scalars().all() if result else []
 
     @classmethod
+    async def set_professional_status(cls, session: AsyncSession, user_id: UUID, professional_status: bool, email_service: EmailService) -> Optional[User]:
+        try:
+            query = update(User).where(User.id == user_id).values(is_professional=professional_status, professional_status_updated_at=datetime.now(timezone.utc)).execution_options(synchronize_session="fetch")
+            await cls._execute_query(session, query)
+            updated_user = await cls.get_by_id(session, user_id)
+            if updated_user:
+                session.refresh(updated_user)  # Explicitly refresh the updated user object
+                logger.info(f"User {user_id} updated successfully with professional status set to {professional_status}.")
+
+                try:
+                    await email_service.send_updated_professional_status_email(updated_user, professional_status)
+                except Exception as e:
+                    logger.error(f"Error sending the updated professional status email: {e}.")
+                return updated_user
+            else:
+                logger.error(f"User {user_id} was not found after attempting to update the professional status.")
+                return None
+        except Exception as e:  # Broad exception handling for debugging
+            logger.error(f"Error during updating professional status: {e}")
+            return None
+
+    @classmethod
     async def register_user(cls, session: AsyncSession, user_data: Dict[str, str], get_email_service) -> Optional[User]:
         return await cls.create(session, user_data, get_email_service)
     
