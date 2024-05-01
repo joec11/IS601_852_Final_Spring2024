@@ -19,7 +19,9 @@ class EmailService:
         subject_map = {
             'email_verification': "Verify Your Account",
             'password_reset': "Password Reset Instructions",
-            'account_locked': "Account Locked Notification"
+            'account_locked': "Account Locked Notification",
+            'updated_professional_status_true': "You Have Been Granted Professional Status",
+            'updated_professional_status_false': "Your Professional Status Has Been Revoked"
         }
 
         if email_type not in subject_map:
@@ -35,3 +37,10 @@ class EmailService:
             "verification_url": verification_url,
             "email": user.email
         }, 'email_verification')
+
+    async def send_updated_professional_status_email(self, user: User, professional_status: bool):
+        await self.send_user_email({
+            "name": user.first_name,
+            "email": user.email,
+            "professional_status": user.is_professional
+        }, 'updated_professional_status_true' if professional_status else 'updated_professional_status_false')
