@@ -254,7 +254,8 @@ async def test_update_own_user_profile_information(async_client, verified_user, 
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
-    response = await async_client.put("/update-own-user-profile/", json=user_data, headers = {"Authorization": f"Bearer {data["access_token"]}"})
+    headers = {"Authorization": f"Bearer {data["access_token"]}"}
+    response = await async_client.put("/update-own-user-profile/", json=user_data, headers=headers)
 
     assert response.status_code == 200
     assert response.json()["email"] == user_data["email"]
@@ -269,7 +270,8 @@ async def test_update_own_user_profile_information(async_client, verified_user, 
 # Test a user to update their own profile information when the user does not exist
 @pytest.mark.asyncio
 async def test_update_own_user_profile_information_when_the_user_does_not_exist(async_client, user_token, user_data):
-    response = await async_client.put("/update-own-user-profile/", json=user_data, headers = {"Authorization": f"Bearer {user_token}"})
+    headers = {"Authorization": f"Bearer {user_token}"}
+    response = await async_client.put("/update-own-user-profile/", json=user_data, headers=headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found"
 
@@ -300,7 +302,8 @@ async def test_update_own_user_profile_information_with_a_duplicate_email(async_
         "email": "john.doe@example.com",
     }
 
-    response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers = {"Authorization": f"Bearer {data["access_token"]}"})
+    headers = {"Authorization": f"Bearer {data["access_token"]}"}
+    response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers=headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Email already exists"
 
@@ -331,7 +334,8 @@ async def test_update_own_user_profile_information_with_a_duplicate_nickname(asy
         "nickname": "john_doe123",
     }
 
-    response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers = {"Authorization": f"Bearer {data["access_token"]}"})
+    headers = {"Authorization": f"Bearer {data["access_token"]}"}
+    response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers=headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Nickname already exists"
 
@@ -356,10 +360,13 @@ def user_notified():
 # Test setting a user's professional status when the user does not exist
 @pytest.mark.asyncio
 async def test_setting_a_user_professional_status_when_the_user_does_not_exist(async_client, admin_token, user_notified):
-    response = await async_client.post("/login", headers = {"Authorization": f"Bearer {admin_token}"})
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.post("/login", headers=headers)
     assert response.status_code == 307
 
-    response = await async_client.put(f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}", json={"is_professional": user_notified["is_professional"]}, headers = {"Authorization": f"Bearer {admin_token}"})
+    url = f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}"
+    json = {"is_professional": user_notified["is_professional"]}
+    response = await async_client.put(url=url, json=json, headers=headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found"
 
@@ -368,7 +375,8 @@ from unittest.mock import patch
 # Test setting a user's professional status to true as an administrator
 @pytest.mark.asyncio
 async def test_updating_a_user_professional_status_to_true_as_an_admin(async_client, db_session, admin_token, user_notified):
-    response = await async_client.post("/login", headers = {"Authorization": f"Bearer {admin_token}"})
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.post("/login", headers=headers)
     assert response.status_code == 307
 
     with patch("app.services.email_service.EmailService.send_updated_professional_status_email") as test_send_email:
@@ -379,14 +387,17 @@ async def test_updating_a_user_professional_status_to_true_as_an_admin(async_cli
         db_session.add(user)
         await db_session.commit()
 
-        response = await async_client.put(f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}", json={"is_professional": user_notified["is_professional"]}, headers = {"Authorization": f"Bearer {admin_token}"})
+        url = f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}"
+        json = {"is_professional": user_notified["is_professional"]}
+        response = await async_client.put(url=url, json=json, headers=headers)
         assert response.status_code == 200
         assert response.json()["is_professional"] == True
 
 # Test setting a user's professional status to false as an administrator
 @pytest.mark.asyncio
 async def test_updating_a_user_professional_status_to_false_as_an_admin(async_client, db_session, admin_token, user_notified):
-    response = await async_client.post("/login", headers = {"Authorization": f"Bearer {admin_token}"})
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.post("/login", headers=headers)
     assert response.status_code == 307
 
     with patch("app.services.email_service.EmailService.send_updated_professional_status_email") as test_send_email:
@@ -397,6 +408,8 @@ async def test_updating_a_user_professional_status_to_false_as_an_admin(async_cl
         db_session.add(user)
         await db_session.commit()
 
-        response = await async_client.put(f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}", json={"is_professional": user_notified["is_professional"]}, headers = {"Authorization": f"Bearer {admin_token}"})
+        url = f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}"
+        json = {"is_professional": user_notified["is_professional"]}
+        response = await async_client.put(url=url, json=json, headers=headers)
         assert response.status_code == 200
         assert response.json()["is_professional"] == False
