@@ -367,8 +367,10 @@ async def test_setting_a_user_professional_status_when_the_user_does_not_exist(a
     response = await async_client.post("/login", headers=headers)
     assert response.status_code == 307
 
-    url = f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}"
-    json = {"is_professional": user_notified["is_professional"]}
+    user_id = user_notified["id"]
+    professional_status = user_notified["is_professional"]
+    url = f"/users/{user_id}/set-professional-status/{professional_status}"
+    json = {"is_professional": professional_status}
     response = await async_client.put(url=url, json=json, headers=headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found"
@@ -390,8 +392,10 @@ async def test_updating_a_user_professional_status_to_true_as_an_admin(async_cli
         db_session.add(user)
         await db_session.commit()
 
-        url = f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}"
-        json = {"is_professional": user_notified["is_professional"]}
+        user_id = user_notified["id"]
+        professional_status = user_notified["is_professional"]
+        url = f"/users/{user_id}/set-professional-status/{professional_status}"
+        json = {"is_professional": professional_status}
         response = await async_client.put(url=url, json=json, headers=headers)
         assert response.status_code == 200
         assert response.json()["is_professional"] == True
@@ -411,8 +415,10 @@ async def test_updating_a_user_professional_status_to_false_as_an_admin(async_cl
         db_session.add(user)
         await db_session.commit()
 
-        url = f"/users/{user_notified["id"]}/set-professional-status/{user_notified["is_professional"]}"
-        json = {"is_professional": user_notified["is_professional"]}
+        user_id = user_notified["id"]
+        professional_status = user_notified["is_professional"]
+        url = f"/users/{user_id}/set-professional-status/{professional_status}"
+        json = {"is_professional": professional_status}
         response = await async_client.put(url=url, json=json, headers=headers)
         assert response.status_code == 200
         assert response.json()["is_professional"] == False
