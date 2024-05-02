@@ -223,3 +223,202 @@ async def test_listing_users_as_admin_or_manager_after_inputing_invalid_limit_in
 
     assert response.status_code == 500
     assert response.json()["detail"] == "The Limit Integer value 0 cannot be less than 1"
+
+# Fixtures for common test data
+@pytest.fixture
+def user_data():
+    return {
+        "email": "john.doe@example.com",
+        "nickname": "john_doe123",
+        "first_name": "John",
+        "last_name": "Doe",
+        "bio": "Experienced software developer specializing in web applications.",
+        "profile_picture_url": "https://example.com/profiles/john.jpg",
+        "linkedin_profile_url": "https://linkedin.com/in/johndoe",
+        "github_profile_url": "https://github.com/johndoe"
+    }
+
+# Test a user to update their own profile information
+@pytest.mark.asyncio
+async def test_update_own_user_profile_information(async_client, verified_user, user_data):
+    form_data = {
+        "username": verified_user.email,
+        "password": "MySuperPassword$1234",
+        "role": UserRole.AUTHENTICATED
+    }
+    response = await async_client.post("/login/", data=urlencode(form_data), headers={"Content-Type": "application/x-www-form-urlencoded"})
+
+    # Check for successful login response
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+    response_token = data["access_token"]
+    headers = {"Authorization": f"Bearer {response_token}"}
+    response = await async_client.put("/update-own-user-profile/", json=user_data, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["email"] == user_data["email"]
+    assert response.json()["nickname"] == user_data["nickname"]
+    assert response.json()["first_name"] == user_data["first_name"]
+    assert response.json()["last_name"] == user_data["last_name"]
+    assert response.json()["bio"] == user_data["bio"]
+    assert response.json()["profile_picture_url"] == user_data["profile_picture_url"]
+    assert response.json()["linkedin_profile_url"] == user_data["linkedin_profile_url"]
+    assert response.json()["github_profile_url"] == user_data["github_profile_url"]
+
+# Test a user to update their own profile information when the user does not exist
+@pytest.mark.asyncio
+async def test_update_own_user_profile_information_when_the_user_does_not_exist(async_client, user_token, user_data):
+    headers = {"Authorization": f"Bearer {user_token}"}
+    response = await async_client.put("/update-own-user-profile/", json=user_data, headers=headers)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
+
+# Test a user to update their own profile information with a duplicate email
+@pytest.mark.asyncio
+async def test_update_own_user_profile_information_with_a_duplicate_email(async_client, db_session, verified_user, user_data):
+    form_data = {
+        "username": verified_user.email,
+        "password": "MySuperPassword$1234",
+        "role": UserRole.AUTHENTICATED
+    }
+    response = await async_client.post("/login/", data=urlencode(form_data), headers={"Content-Type": "application/x-www-form-urlencoded"})
+
+    # Check for successful login response
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+    user_data["hashed_password"] = "Secure*1234"
+    user_data["role"] = UserRole.AUTHENTICATED
+
+    user = User(**user_data)
+    db_session.add(user)
+    await db_session.commit()
+
+    updated_user_data = {
+        "email": "john.doe@example.com",
+    }
+
+    response_token = data["access_token"]
+    headers = {"Authorization": f"Bearer {response_token}"}
+    response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers=headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Email already exists"
+
+# Test a user to update their own profile information with a duplicate nickname
+@pytest.mark.asyncio
+async def test_update_own_user_profile_information_with_a_duplicate_nickname(async_client, db_session, verified_user, user_data):
+    form_data = {
+        "username": verified_user.email,
+        "password": "MySuperPassword$1234",
+        "role": UserRole.AUTHENTICATED
+    }
+    response = await async_client.post("/login/", data=urlencode(form_data), headers={"Content-Type": "application/x-www-form-urlencoded"})
+
+    # Check for successful login response
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+    user_data["hashed_password"] = "Secure*1234"
+    user_data["role"] = UserRole.AUTHENTICATED
+
+    user = User(**user_data)
+    db_session.add(user)
+    await db_session.commit()
+
+    updated_user_data = {
+        "nickname": "john_doe123",
+    }
+
+    response_token = data["access_token"]
+    headers = {"Authorization": f"Bearer {response_token}"}
+    response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers=headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Nickname already exists"
+
+# Fixtures for common test data
+@pytest.fixture
+def user_notified():
+    return {
+        "id": "12345678-1234-1234-1234-123456789abc",
+        "email": "john.doe@example.com",
+        "nickname": "john_doe123",
+        "hashed_password": "Secure*1234",
+        "first_name": "John",
+        "last_name": "Doe",
+        "bio": "Experienced software developer specializing in web applications.",
+        "profile_picture_url": "https://example.com/profiles/john.jpg",
+        "linkedin_profile_url": "https://linkedin.com/in/johndoe",
+        "github_profile_url": "https://github.com/johndoe",
+        "role": UserRole.AUTHENTICATED,
+        "is_professional": False
+    }
+
+# Test setting a user's professional status when the user does not exist
+@pytest.mark.asyncio
+async def test_setting_a_user_professional_status_when_the_user_does_not_exist(async_client, admin_token, user_notified):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.post("/login", headers=headers)
+    assert response.status_code == 307
+
+    user_id = user_notified["id"]
+    professional_status = user_notified["is_professional"]
+    url = f"/users/{user_id}/set-professional-status/{professional_status}"
+    json = {"is_professional": professional_status}
+    response = await async_client.put(url=url, json=json, headers=headers)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
+
+from unittest.mock import patch
+
+# Test setting a user's professional status to true as an administrator
+@pytest.mark.asyncio
+async def test_updating_a_user_professional_status_to_true_as_an_admin(async_client, db_session, admin_token, user_notified):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.post("/login", headers=headers)
+    assert response.status_code == 307
+
+    with patch("app.services.email_service.EmailService.send_updated_professional_status_email") as test_send_email:
+        test_send_email.return_value = None
+        user_notified["is_professional"] = True
+
+        user = User(**user_notified)
+        db_session.add(user)
+        await db_session.commit()
+
+        user_id = user_notified["id"]
+        professional_status = user_notified["is_professional"]
+        url = f"/users/{user_id}/set-professional-status/{professional_status}"
+        json = {"is_professional": professional_status}
+        response = await async_client.put(url=url, json=json, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["is_professional"] == True
+
+# Test setting a user's professional status to false as an administrator
+@pytest.mark.asyncio
+async def test_updating_a_user_professional_status_to_false_as_an_admin(async_client, db_session, admin_token, user_notified):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.post("/login", headers=headers)
+    assert response.status_code == 307
+
+    with patch("app.services.email_service.EmailService.send_updated_professional_status_email") as test_send_email:
+        test_send_email.return_value = None
+        user_notified["is_professional"] = False
+
+        user = User(**user_notified)
+        db_session.add(user)
+        await db_session.commit()
+
+        user_id = user_notified["id"]
+        professional_status = user_notified["is_professional"]
+        url = f"/users/{user_id}/set-professional-status/{professional_status}"
+        json = {"is_professional": professional_status}
+        response = await async_client.put(url=url, json=json, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["is_professional"] == False

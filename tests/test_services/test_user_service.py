@@ -264,3 +264,50 @@ async def test_convert_user_email_to_lowercase_after_user_is_created(db_session,
     assert user is not None
     assert user.email == str(user_data["email"]).lower()
     assert user.role == user_data["role"]
+
+# Fixtures for common test data
+@pytest.fixture
+def test_user():
+    return {
+        "id": "12345678-1234-1234-1234-123456789abc",
+        "email": "john.doe@example.com",
+        "nickname": "john_doe123",
+        "hashed_password": "Secure*1234",
+        "first_name": "John",
+        "last_name": "Doe",
+        "bio": "Experienced software developer specializing in web applications.",
+        "profile_picture_url": "https://example.com/profiles/john.jpg",
+        "linkedin_profile_url": "https://linkedin.com/in/johndoe",
+        "github_profile_url": "https://github.com/johndoe",
+        "role": UserRole.AUTHENTICATED,
+        "is_professional": False
+    }
+
+# Test updating a user's professional status with an invalid user id
+async def test_update_a_user_professional_status_with_an_invalid_user_id(db_session, test_user, email_service):
+    updated_user = await UserService.set_professional_status(db_session, test_user["id"], test_user["is_professional"], email_service)
+    assert updated_user is None
+
+# Test updating a user's professional status when the professional status is set to true
+async def test_update_a_user_professional_status_when_the_professional_status_is_set_to_true(db_session, test_user, email_service):
+    user = User(**test_user)
+    db_session.add(user)
+    await db_session.commit()
+    assert user is not None
+
+    user.is_professional = True
+    updated_user = await UserService.set_professional_status(db_session, user.id, user.is_professional, email_service)
+    assert updated_user is not None
+    assert updated_user.is_professional == True
+
+# Test updating a user's professional status when the professional status is set to false
+async def test_update_a_user_professional_status_when_the_professional_status_is_set_to_false(db_session, test_user, email_service):
+    user = User(**test_user)
+    db_session.add(user)
+    await db_session.commit()
+    assert user is not None
+
+    user.is_professional = False
+    updated_user = await UserService.set_professional_status(db_session, user.id, user.is_professional, email_service)
+    assert updated_user is not None
+    assert updated_user.is_professional == False

@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, get_db, get_email_service, require_role
 from app.schemas.pagination_schema import EnhancedPagination
 from app.schemas.token_schema import TokenResponse
-from app.schemas.user_schemas import LoginRequest, UserBase, UserCreate, UserListResponse, UserResponse, UserUpdate
+from app.schemas.user_schemas import LoginRequest, UserBase, UserCreate, UserListResponse, UserResponse, UserUpdate, UpdateOwnUserProfile
 from app.services.user_service import UserService
 from app.services.jwt_service import create_access_token
 from app.utils.link_generation import create_user_links, generate_pagination_links
@@ -201,6 +201,97 @@ async def list_users(
         links=pagination_links  # Ensure you have appropriate logic to create these links
     )
 
+@router.put("/users/{user_id}/set-professional-status/{professional_status}", response_model=UserResponse, name="set_professional_status", tags=["User Management Requires (Admin or Manager Roles)"])
+async def set_professional_status(user_id: UUID, professional_status: bool, request: Request, db: AsyncSession = Depends(get_db), email_service: EmailService = Depends(get_email_service), token: str = Depends(oauth2_scheme), current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))):
+    """
+    Update the user's professional status by their user id.
+
+    This endpoint allows an administrator or a manager to update a user's professional status by their user id.
+    On successful update of the user's professional status, it returns the updated user's professional status
+    along with their user information and sends a professional status update email to the user.
+
+    Args:
+    - **user_id**: UUID of the user to update.
+    - **professional_status**: Boolean value to set the professional status of the user.
+
+    Returns:
+    - UserResponse: The updated user's professional status along with their user information.
+    - A professional status update email to the user.
+    """
+    user = await UserService.get_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    updated_user = await UserService.set_professional_status(db, user_id, professional_status, email_service)
+
+    return UserResponse.model_construct(
+        id=updated_user.id,
+        bio=updated_user.bio,
+        first_name=updated_user.first_name,
+        last_name=updated_user.last_name,
+        nickname=updated_user.nickname,
+        email=updated_user.email,
+        role=updated_user.role,
+        last_login_at=updated_user.last_login_at,
+        profile_picture_url=updated_user.profile_picture_url,
+        github_profile_url=updated_user.github_profile_url,
+        linkedin_profile_url=updated_user.linkedin_profile_url,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at,
+        links=create_user_links(updated_user.id, request),
+        is_professional=updated_user.is_professional,
+        professional_status_updated_at=updated_user.professional_status_updated_at
+    )
+
+@router.put("/update-own-user-profile/", response_model=UserResponse, name="update_user_profle", tags=["User Own Profile Management Requires (Admin or Manager Roles, or Existing Users)"])
+async def update_own_user_profile(user_update: UpdateOwnUserProfile, request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme), current_user: dict = Depends(require_role(["ADMIN", "MANAGER", "AUTHENTICATED"]))):
+    """
+    Update a user's own profile.
+
+    This endpoint allows a user to update their own profile with the provided information.
+    If the email or nickname already exists, it returns a 400 error.
+    On successful update, it returns the updated user's own profile information along with links to related actions.
+
+    Parameters:
+    - user_update (UserUpdateProfile): The user's own profile information to update.
+    - request (Request): The request object.
+    - db (AsyncSession): The database session.
+
+    Returns:
+    - UserResponse: The updated user's own profile information along with navigation links.
+    """
+    user = await UserService.get_by_email(db, current_user["user_id"])
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    existing_email = await UserService.get_by_email(db, user_update.email)
+    if user.email != user_update.email and existing_email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
+
+    existing_nickname = await UserService.get_by_nickname(db, user_update.nickname)
+    if user.nickname != user_update.nickname and existing_nickname:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nickname already exists")
+
+    user_data = user_update.model_dump(exclude_unset=True)
+    updated_user = await UserService.update(db, user.id, user_data)
+
+    return UserResponse.model_construct(
+        id=updated_user.id,
+        bio=updated_user.bio,
+        first_name=updated_user.first_name,
+        last_name=updated_user.last_name,
+        nickname=updated_user.nickname,
+        email=updated_user.email,
+        role=updated_user.role,
+        last_login_at=updated_user.last_login_at,
+        profile_picture_url=updated_user.profile_picture_url,
+        github_profile_url=updated_user.github_profile_url,
+        linkedin_profile_url=updated_user.linkedin_profile_url,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at,
+        links=create_user_links(updated_user.id, request),
+        is_professional=updated_user.is_professional
+    )
 
 @router.post("/register/", response_model=UserResponse, tags=["Login and Registration"])
 async def register(user_data: UserCreate, session: AsyncSession = Depends(get_db), email_service: EmailService = Depends(get_email_service)):
