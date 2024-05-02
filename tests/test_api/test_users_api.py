@@ -254,7 +254,8 @@ async def test_update_own_user_profile_information(async_client, verified_user, 
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
-    headers = {"Authorization": f"Bearer {data["access_token"]}"}
+    response_token = data["access_token"]
+    headers = {"Authorization": f"Bearer {response_token}"}
     response = await async_client.put("/update-own-user-profile/", json=user_data, headers=headers)
 
     assert response.status_code == 200
@@ -302,7 +303,8 @@ async def test_update_own_user_profile_information_with_a_duplicate_email(async_
         "email": "john.doe@example.com",
     }
 
-    headers = {"Authorization": f"Bearer {data["access_token"]}"}
+    response_token = data["access_token"]
+    headers = {"Authorization": f"Bearer {response_token}"}
     response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers=headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Email already exists"
@@ -334,7 +336,8 @@ async def test_update_own_user_profile_information_with_a_duplicate_nickname(asy
         "nickname": "john_doe123",
     }
 
-    headers = {"Authorization": f"Bearer {data["access_token"]}"}
+    response_token = data["access_token"]
+    headers = {"Authorization": f"Bearer {response_token}"}
     response = await async_client.put("/update-own-user-profile/", json=updated_user_data, headers=headers)
     assert response.status_code == 400
     assert response.json()["detail"] == "Nickname already exists"
