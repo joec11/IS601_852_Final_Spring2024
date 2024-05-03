@@ -8,13 +8,13 @@
 - [Issue 5: Incorrect HTTP Status Codes Are Returned When Inputting Invalid Values for Skip and Limit Integers to Get a List of Users as an ADMIN or MANAGER](https://github.com/joec11/IS601_852_Final_Spring2024/issues/11)
 
 ## Links to New Feature Implementation
-- https://github.com/joec11/IS601_852_Final_Spring2024/tree/New_Feature_9_User_Profile_Management
-- https://github.com/joec11/IS601_852_Final_Spring2024/pull/13
+- [New Feature Branch - User Profile Management](https://github.com/joec11/IS601_852_Final_Spring2024/tree/New_Feature_9_User_Profile_Management)
+- [New Feature Pull Request](https://github.com/joec11/IS601_852_Final_Spring2024/pull/13)
 
 ## Link to the DockerHub repository and the docker images
-https://hub.docker.com/r/joec11/user_management/tags
+[DockerHub Repository](https://hub.docker.com/r/joec11/user_management/tags)
 
 ## Link to GitHub Actions and Pytest Coverage Screenshot
-https://github.com/joec11/IS601_852_Final_Spring2024/actions
+[GitHub Actions](https://github.com/joec11/IS601_852_Final_Spring2024/actions)
 
 ![Pytest Coverage](pytest_coverage.png)
